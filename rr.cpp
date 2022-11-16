@@ -51,9 +51,11 @@ void solution()
             if (j == 0)
                 apps[i].head = name;
 
-            node *n = nullptr;
             if (apps[i].ptr.find(name) == apps[i].ptr.end())
+            {
                 apps[i].ptr[name] = new node();
+                apps[i].ptr[name]->name = name;
+            }
 
             // handling children relations
             int chil;
@@ -71,7 +73,6 @@ void solution()
                 }
                 apps[i].ptr[nxt]->deps.push_back(name);
                 apps[i].ptr[name]->next.push_back(nxt);
-                // cout << *apps[i].ptr[name]->next.begin();
             }
 
             // computation times for current node
@@ -85,17 +86,23 @@ void solution()
 
     // cout << apps[0].head << '\n';
     vector<vector<string>> cloud(c);
-    int cur_cloud = 0;
-    for (int i = 0; i < a; ++i) {
-        queue<node*> q;
+    unordered_set<string> alloted_subtask;
+    for (int i = 0; i < a; ++i)
+    {
+        int cur_cloud = 0;
+        queue<node *> q;
         q.push(apps[i].ptr[apps[i].head]);
-        while (!q.empty()) {
-            node* n = q.front();
+        while (!q.empty())
+        {
+            node *n = q.front();
             q.pop();
-            // cout << n->name << ' ' << c << '\n';
+            // // cout << n->name << ' ' << c << '\n';
             for (int j = 0; j < n->next.size(); ++j)
-                q.push(apps[i].ptr[n->deps[j]]);
-                // cout << apps[i].ptr[n->deps[j]]->name << '\n';
+                if (alloted_subtask.find(apps[i].ptr[n->next[j]]->name) == alloted_subtask.end()) {
+                    q.push(apps[i].ptr[n->next[j]]);
+                    alloted_subtask.insert(apps[i].ptr[n->next[j]]->name);
+                }
+            // ! ONLY ADD NEW SUBTASKS
             cloud[cur_cloud].push_back(n->name);
             cur_cloud = (cur_cloud + 1) % c;
         }
