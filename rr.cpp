@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <queue>
 #include <string>
@@ -10,6 +11,7 @@ using namespace std;
 struct node
 {
     string name;
+    int app_id;
     vector<string> next;
     vector<string> deps;
 };
@@ -23,30 +25,36 @@ struct app
     unordered_map<string, node *> ptr;
     unordered_set<string> fin;
 };
+vector<app> apps;
+
+bool subtask_priority(node *a, node *b)
+{
+    if (apps[a->app_id].type != apps[b->app_id].type)
+        return apps[a->app_id].type < apps[b->app_id].type;
+    if (apps[a->app_id].at != apps[b->app_id].at)
+        return apps[a->app_id].at < apps[b->app_id].at;
+    return a->name < b->name;
+}
 
 void solution()
 {
     int a, c;
-    // cout << "Enter no. of apps and clouds: ";
     cin >> a >> c;
     unordered_map<string, vector<int>> etc;
-    vector<app> apps(a);
+    apps.resize(a);
 
     // constructing each app
     for (int i = 0; i < a; ++i)
     {
         apps[i].id = i + 1;
-        // cout << "Enter clound type and arrival time of cloud " << i + 1 << ": ";
         cin >> apps[i].type >> apps[i].at;
         int nodes;
-        // cout << "Enter number of nodes in this app: ";
         cin >> nodes;
 
         // constructing each node
         for (int j = 0; j < nodes; ++j)
         {
             string name;
-            // cout << "Name of subtask: ";
             cin >> name;
             if (j == 0)
                 apps[i].head = name;
@@ -55,21 +63,21 @@ void solution()
             {
                 apps[i].ptr[name] = new node();
                 apps[i].ptr[name]->name = name;
+                apps[i].ptr[name]->app_id = i;
             }
 
             // handling children relations
             int chil;
-            // cout << "No. of subtasks dependent on " << name << ": ";
             cin >> chil;
             for (int k = 0; k < chil; ++k)
             {
                 string nxt;
-                // cout << "Next node " << k << ": ";
                 cin >> nxt;
                 if (apps[i].ptr.find(nxt) == apps[i].ptr.end())
                 {
                     apps[i].ptr[nxt] = new node();
                     apps[i].ptr[nxt]->name = nxt;
+                    apps[i].ptr[nxt]->app_id = i;
                 }
                 apps[i].ptr[nxt]->deps.push_back(name);
                 apps[i].ptr[name]->next.push_back(nxt);
@@ -77,15 +85,14 @@ void solution()
 
             // computation times for current node
             vector<int> ct(c);
-            // cout << "Computation times of " << name << ": ";
             for (int l = 0; l < c; ++l)
                 cin >> ct[l];
             etc[name] = ct;
         }
     }
 
-    // cout << apps[0].head << '\n';
-    vector<vector<string>> cloud(c);
+    // Allot each subtask to a computer using round robin algorithm
+    vector<vector<node*>> cloud(c);
     unordered_set<string> alloted_subtask;
     for (int i = 0; i < a; ++i)
     {
@@ -96,17 +103,20 @@ void solution()
         {
             node *n = q.front();
             q.pop();
-            // // cout << n->name << ' ' << c << '\n';
             for (int j = 0; j < n->next.size(); ++j)
-                if (alloted_subtask.find(apps[i].ptr[n->next[j]]->name) == alloted_subtask.end()) {
+                if (alloted_subtask.find(apps[i].ptr[n->next[j]]->name) == alloted_subtask.end())
+                {
                     q.push(apps[i].ptr[n->next[j]]);
                     alloted_subtask.insert(apps[i].ptr[n->next[j]]->name);
                 }
-            // ! ONLY ADD NEW SUBTASKS
-            cloud[cur_cloud].push_back(n->name);
+            cloud[cur_cloud].push_back(n);
             cur_cloud = (cur_cloud + 1) % c;
         }
     }
+
+    // Assign time slots of task execution according to different priorities
+    for (auto &i : cloud)
+        sort(i.begin(), i.end(), subtask_priority);
 }
 
 int main()
